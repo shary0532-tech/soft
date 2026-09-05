@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>암호 풀기 실험기: 글자 수와 암호 해독의 비밀</title>
+<style>
+  :root{
+    --navy:#1a365d;
+    --blue:#2b6cb0;
+    --blue-light:#ebf8ff;
+    --blue-dark:#2c5282;
+    --gray-bg:#f7fafc;
+    --gray-border:#cbd5e0;
+    --gray-border2:#e2e8f0;
+    --text:#333333;
+    --sub:#4a5568;
+    --plain:#4299e1;
+    --cipher:#e53e3e;
+    --std:#a0aec0;
+  }
+  *{box-sizing:border-box;}
+  body{
+    font-family:'Malgun Gothic','맑은 고딕',sans-serif;
+    font-size:15px;
+    line-height:1.6;
+    color:var(--text);
+    background:#eef2f7;
+    margin:0;
+    padding:24px 12px 60px;
+  }
+  .wrap{max-width:960px;margin:0 auto;}
+  h1{
+    font-size:26px;text-align:center;color:var(--navy);margin-bottom:4px;
+  }
+  h1 small{display:block;font-size:14px;font-weight:normal;color:var(--sub);margin-top:6px;}
+  h2{
+    font-size:18px;color:var(--blue);border-bottom:2px solid var(--blue);
+    padding-bottom:6px;margin-top:34px;margin-bottom:14px;
+  }
+  .card{
+    background:#fff;border:1px solid var(--gray-border2);border-radius:10px;
+    padding:20px 22px;box-shadow:0 1px 3px rgba(0,0,0,0.05);
+  }
+  .instruction{font-size:13px;color:var(--sub);margin-bottom:12px;}
+
+  /* 입력 영역 */
+  .input-row{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start;}
+  .input-col{flex:1 1 320px;}
+  label{font-weight:bold;color:var(--blue-dark);display:block;margin-bottom:6px;font-size:14px;}
+  textarea{
+    width:100%;min-height:90px;padding:10px;border:1px solid var(--gray-border);
+    border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;
+  }
+  .sample-buttons{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .sample-btn{
+    background:var(--blue-light);color:var(--blue-dark);border:1px solid #bee3f8;
+    border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;
+  }
+  .sample-btn:hover{background:#d3ecfb;}
+
+  .slider-box{flex:1 1 260px;}
+  .slider-value{
+    display:inline-block;min-width:32px;text-align:center;background:var(--blue);
+    color:#fff;border-radius:6px;padding:2px 8px;font-weight:bold;margin-left:8px;
+  }
+  input[type="range"]{width:100%;}
+
+  .action-row{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;}
+  button.primary{
+    background:var(--blue);color:#fff;border:none;border-radius:8px;
+    padding:11px 22px;font-size:15px;font-weight:bold;cursor:pointer;
+  }
+  button.primary:hover{background:var(--blue-dark);}
+  button.ghost{
+    background:#fff;color:var(--blue-dark);border:1px solid var(--blue);
+    border-radius:8px;padding:11px 18px;font-size:14px;cursor:pointer;
+  }
+  button.ghost:hover{background:var(--blue-light);}
+
+  /* 결과 영역 */
+  .result-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:16px;}
+  .stat-box{
+    background:var(--gray-bg);border:1px solid var(--gray-border2);border-radius:8px;
+    padding:14px 16px;
+  }
+  .stat-box .label{font-size:12px;color:var(--sub);margin-bottom:4px;}
+  .stat-box .value{font-size:20px;font-weight:bold;color:var(--navy);}
+  .stat-box .value.good{color:#2f855a;}
+  .stat-box .value.bad{color:#c53030;}
+
+  .text-output{
+    background:var(--gray-bg);border:1px solid var(--gray-border2);border-radius:8px;
+    padding:12px 14px;font-family:monospace;font-size:14px;word-break:break-all;margin-top:8px;
+  }
+  .text-output .cap{font-family:'Malgun Gothic',sans-serif;font-size:12px;color:var(--sub);display:block;margin-bottom:4px;}
+
+  /* 차트 */
+  .chart-wrap{overflow-x:auto;margin-top:10px;}
+  .chart{display:flex;align-items:flex-end;gap:3px;height:220px;min-width:780px;border-bottom:2px solid #cbd5e0;padding-bottom:2px;}
+  .chart-col{flex:1;display:flex;flex-direction:column-reverse;align-items:center;height:100%;position:relative;}
+  .bar-pair{display:flex;gap:2px;align-items:flex-end;width:100%;justify-content:center;height:100%;}
+  .bar{width:40%;border-radius:2px 2px 0 0;transition:height .25s;}
+  .bar.plain{background:var(--plain);}
+  .bar.cipher{background:var(--cipher);}
+  .chart-letter{font-size:11px;color:var(--sub);margin-top:4px;text-align:center;}
+  .chart-letter.hl{color:var(--cipher);font-weight:bold;}
+  .legend{display:flex;gap:18px;margin-top:10px;font-size:13px;flex-wrap:wrap;}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .swatch{width:12px;height:12px;border-radius:2px;display:inline-block;}
+
+  /* 표 */
+  table{width:100%;border-collapse:collapse;margin-top:10px;}
+  th,td{border:1px solid var(--gray-border);padding:9px 10px;text-align:left;vertical-align:top;font-size:14px;}
+  th{background:var(--blue-light);color:var(--blue-dark);font-weight:bold;width:25%;}
+
+  .checklist td{border:1px solid var(--gray-border2);}
+  .checklist th{width:auto;}
+  .checklist input[type=checkbox]{width:18px;height:18px;}
+
+  .qa{margin-top:10px;}
+  .qa .q{font-weight:bold;color:var(--blue-dark);margin-top:14px;}
+  .qa textarea{margin-top:6px;}
+
+  footer{text-align:center;color:var(--sub);font-size:12px;margin-top:40px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>암호 풀기 실험기: 글자 수와 암호 해독의 비밀
+    <small>시저 암호(Caesar Cipher)와 빈도수 분석 &middot; 2022 개정 정보과 교육과정</small>
+  </h1>
+
+  <h2>① 실험 설정</h2>
+  <div class="card">
+    <p class="instruction">원문을 입력하거나 아래 예시 버튼(10자 / 50자 / 200자 이상)을 눌러 글자 수에 따른 변화를 비교해 보세요. 영문 알파벳만 분석 대상이며, 공백·특수문자·숫자는 자동으로 제외됩니다.</p>
+    <div class="input-row">
+      <div class="input-col">
+        <label>① 원문 입력 (Plaintext, 영어)</label>
+        <textarea id="plaintext" placeholder="예: THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG">THE QUICK BROWN FOX</textarea>
+        <div class="sample-buttons">
+          <button class="sample-btn" onclick="loadSample('short')">예시: 10자 내외</button>
+          <button class="sample-btn" onclick="loadSample('mid')">예시: 50자 내외</button>
+          <button class="sample-btn" onclick="loadSample('long')">예시: 200자 이상</button>
+        </div>
+      </div>
+      <div class="slider-box">
+        <label>② 이동값 설정 (Shift Key, 1~25) <span id="keyValLabel" class="slider-value">3</span></label>
+        <input type="range" id="keySlider" min="1" max="25" value="3" oninput="onKeyChange()">
+      </div>
+    </div>
+    <div class="action-row">
+      <button class="primary" onclick="runSimulation()">암호화 &amp; 분석 실행</button>
+      <button class="ghost" onclick="randomizeKey()">이동값 무작위</button>
+    </div>
+  </div>
+
+  <h2>② 결과 요약</h2>
+  <div class="card">
+    <div class="result-grid">
+      <div class="stat-box">
+        <div class="label">분석 대상 글자 수 (알파벳만)</div>
+        <div class="value" id="charCount">-</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">실제 이동값 (Key)</div>
+        <div class="value" id="actualKey">-</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">빈도수 분석 추정 이동값</div>
+        <div class="value" id="estKey">-</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">해독 성공 여부</div>
+        <div class="value" id="successBox">-</div>
+      </div>
+    </div>
+
+    <div class="text-output">
+      <span class="cap">암호문 (Ciphertext)</span>
+      <span id="cipherOut">-</span>
+    </div>
+    <div class="text-output">
+      <span class="cap">추정 이동값으로 자동 복호화한 문장</span>
+      <span id="decryptOut">-</span>
+    </div>
+  </div>
+
+  <h2>③ 알파벳 빈도수 비교 (원문 vs 암호문)</h2>
+  <div class="card">
+    <p class="instruction">암호문에서 가장 높은 막대(빨강)가 영어에서 가장 흔한 글자 'E'라고 가정하고 이동값을 역산합니다. 글자 수가 적을수록 이 가정이 잘 맞지 않을 수 있습니다.</p>
+    <div class="chart-wrap">
+      <div class="chart" id="chart"></div>
+    </div>
+    <div class="legend">
+      <span><span class="swatch" style="background:var(--plain)"></span>원문 빈도</span>
+      <span><span class="swatch" style="background:var(--cipher)"></span>암호문 빈도 (빨간 글자 = 최다 빈도, E로 가정)</span>
+    </div>
+  </div>
+
+  <h2>④ 탐구 활동 (직접 작성해 보기)</h2>
+  <div class="card qa">
+    <div class="q">질문 1. 글자 수가 10자일 때 빈도수 분석만으로 암호를 해독하기 어려운 이유는 무엇인가요?</div>
+    <textarea placeholder="여기에 답을 작성해 보세요."></textarea>
+    <div class="q">질문 2. 글자 수가 몇 자 이상일 때 실제 이동값(Key)과 빈도수 분석 추정값이 일치하기 시작하나요? 위 시뮬레이터로 직접 확인해 보세요.</div>
+    <textarea placeholder="여기에 답을 작성해 보세요."></textarea>
+  </div>
+
+  <h2>⑤ 교사 체크리스트</h2>
+  <div class="card">
+    <table class="checklist">
+      <tr><th style="width:10%;text-align:center;">확인</th><th>평가 기준</th></tr>
+      <tr><td style="text-align:center;"><input type="checkbox"></td><td>시저 암호의 원리를 정확히 이해하고 변수(Key)를 조작할 수 있는가?</td></tr>
+      <tr><td style="text-align:center;"><input type="checkbox"></td><td>표본 크기(글자 수)와 통계적 유의성(빈도수 분석)의 관계를 설명할 수 있는가?</td></tr>
+      <tr><td style="text-align:center;"><input type="checkbox"></td><td>실험 결과를 바탕으로 추상화 및 알고리즘 요소를 도출하였는가?</td></tr>
+    </table>
+  </div>
+
+  <footer>암호 풀기 실험기 &middot; 시저 암호(C = (P + K) mod 26) &amp; 빈도수 분석 기반 자동 시뮬레이터</footer>
+</div>
+
+<script>
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+// 일반적인 영어 텍스트의 표준 알파벳 빈도(%) - 참고용, 화면엔 미표시하되 필요시 확장 가능
+const STD_FREQ = {A:8.2,B:1.5,C:2.8,D:4.3,E:12.7,F:2.2,G:2.0,H:6.1,I:7.0,J:0.15,K:0.77,L:4.0,M:2.4,
+N:6.7,O:7.5,P:1.9,Q:0.095,R:6.0,S:6.3,T:9.1,U:2.8,V:0.98,W:2.4,X:0.15,Y:2.0,Z:0.074};
+
+const samples = {
+  short: "HELLO WORLD",
+  mid: "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG WHILE THE SUN SETS",
+  long: "INFORMATION SCIENCE TEACHES US THAT DATA BECOMES MEANINGFUL ONLY THROUGH PATTERNS AND STRUCTURE. THE CAESAR CIPHER IS ONE OF THE OLDEST ENCRYPTION METHODS, SHIFTING EACH LETTER BY A FIXED AMOUNT. AS THE AMOUNT OF TEXT GROWS LARGER, THE FREQUENCY OF EACH LETTER GRADUALLY APPROACHES THE STANDARD DISTRIBUTION FOUND IN ORDINARY ENGLISH WRITING, WHICH MAKES STATISTICAL CRYPTANALYSIS FAR MORE RELIABLE FOR LONGER MESSAGES THAN FOR SHORT ONES"
+};
+
+function loadSample(kind){
+  document.getElementById('plaintext').value = samples[kind];
+  runSimulation();
+}
+
+function onKeyChange(){
+  document.getElementById('keyValLabel').textContent = document.getElementById('keySlider').value;
+  runSimulation();
+}
+
+function randomizeKey(){
+  const k = 1 + Math.floor(Math.random()*25);
+  document.getElementById('keySlider').value = k;
+  document.getElementById('keyValLabel').textContent = k;
+  runSimulation();
+}
+
+function encryptChar(ch, key){
+  const idx = ALPHABET.indexOf(ch);
+  if(idx === -1) return ch;
+  return ALPHABET[(idx + key) % 26];
+}
+function decryptChar(ch, key){
+  const idx = ALPHABET.indexOf(ch);
+  if(idx === -1) return ch;
+  return ALPHABET[(idx - key + 26) % 26];
+}
+
+function runSimulation(){
+  const raw = document.getElementById('plaintext').value.toUpperCase();
+  const key = parseInt(document.getElementById('keySlider').value, 10);
+
+  const lettersOnly = raw.replace(/[^A-Z]/g, "");
+  const cipherFull = raw.split("").map(c => encryptChar(c, key)).join("");
+  const cipherLettersOnly = lettersOnly.split("").map(c => encryptChar(c, key)).join("");
+
+  // 빈도 카운트
+  const plainCount = {}, cipherCount = {};
+  ALPHABET.split("").forEach(l => { plainCount[l]=0; cipherCount[l]=0; });
+  lettersOnly.split("").forEach(c => plainCount[c]++);
+  cipherLettersOnly.split("").forEach(c => cipherCount[c]++);
+
+  // 최댓값 위치 찾기 (E로 가정)
+  let maxLetter = "A", maxCount = -1;
+  ALPHABET.split("").forEach(l => {
+    if(cipherCount[l] > maxCount){ maxCount = cipherCount[l]; maxLetter = l; }
+  });
+  const maxIndex = ALPHABET.indexOf(maxLetter);
+  const estKey = ((maxIndex - 4) + 26) % 26;
+
+  const decrypted = cipherFull.split("").map(c => decryptChar(c, estKey)).join("");
+  const success = (lettersOnly.length > 0) && (estKey === key);
+
+  // 결과 텍스트 반영
+  document.getElementById('charCount').textContent = lettersOnly.length + "자";
+  document.getElementById('actualKey').textContent = key;
+  document.getElementById('estKey').textContent = lettersOnly.length ? estKey : "-";
+  const successBox = document.getElementById('successBox');
+  if(lettersOnly.length === 0){
+    successBox.textContent = "-";
+    successBox.className = "value";
+  } else if(success){
+    successBox.textContent = "성공 ✅";
+    successBox.className = "value good";
+  } else {
+    successBox.textContent = "실패 ❌";
+    successBox.className = "value bad";
+  }
+  document.getElementById('cipherOut').textContent = cipherFull || "-";
+  document.getElementById('decryptOut').textContent = lettersOnly.length ? decrypted : "-";
+
+  drawChart(plainCount, cipherCount, maxLetter, lettersOnly.length);
+}
+
+function drawChart(plainCount, cipherCount, maxLetter, total){
+  const chart = document.getElementById('chart');
+  chart.innerHTML = "";
+
+  const plainMaxPct = total ? Math.max(...ALPHABET.split("").map(l => plainCount[l]/total*100)) : 1;
+  const cipherMaxPct = total ? Math.max(...ALPHABET.split("").map(l => cipherCount[l]/total*100)) : 1;
+  const maxPct = Math.max(plainMaxPct, cipherMaxPct, 1);
+
+  ALPHABET.split("").forEach(l => {
+    const col = document.createElement('div');
+    col.className = 'chart-col';
+
+    const pairWrap = document.createElement('div');
+    pairWrap.className = 'bar-pair';
+
+    const pPct = total ? (plainCount[l]/total*100) : 0;
+    const cPct = total ? (cipherCount[l]/total*100) : 0;
+
+    const pBar = document.createElement('div');
+    pBar.className = 'bar plain';
+    pBar.style.height = (pPct/maxPct*180) + 'px';
+    pBar.title = `원문 ${l}: ${plainCount[l]}회 (${pPct.toFixed(1)}%)`;
+
+    const cBar = document.createElement('div');
+    cBar.className = 'bar cipher';
+    cBar.style.height = (cPct/maxPct*180) + 'px';
+    cBar.title = `암호문 ${l}: ${cipherCount[l]}회 (${cPct.toFixed(1)}%)`;
+
+    pairWrap.appendChild(pBar);
+    pairWrap.appendChild(cBar);
+    col.appendChild(pairWrap);
+
+    const label = document.createElement('div');
+    label.className = 'chart-letter' + (l === maxLetter && total ? ' hl' : '');
+    label.textContent = l;
+    col.appendChild(label);
+
+    chart.appendChild(col);
+  });
+}
+
+// 초기 실행
+runSimulation();
+</script>
+</body>
+</html>
