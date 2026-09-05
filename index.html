@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>K-NN 모델 교육용 인터랙티브 시뮬레이터</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --class-a: #ef4444;
+      --class-a-light: rgba(239, 68, 68, 0.22);
+      --class-b: #3b82f6;
+      --class-b-light: rgba(59, 130, 246, 0.22);
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      padding: 24px;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .app-container {
+      max-width: 1200px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* 헤더 */
+    header {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+
+    .title-group h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .title-group p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .abstraction-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .abstraction-badge:hover {
+      background: #dbeafe;
+    }
+
+    /* 레이아웃 분할 (좌측 제어 & 지표 / 우측 캔버스) */
+    .workspace {
+      display: grid;
+      grid-template-columns: 460px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+
+    .left-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .control-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .control-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .control-badge {
+      font-size: 12px;
+      color: var(--primary);
+      background: #eef2ff;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+
+    select, input[type="range"] {
+      width: 100%;
+    }
+
+    select {
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--text-main);
+      font-weight: 500;
+      outline: none;
+      cursor: pointer;
+    }
+    select:focus {
+      border-color: var(--primary);
+    }
+
+    input[type="range"] {
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    button.btn-primary {
+      flex: 1;
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s;
+    }
+    button.btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    /* 지표 카드 영역 */
+    .metrics-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .metric-box {
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      border-radius: 10px;
+      padding: 12px 8px;
+      text-align: center;
+    }
+
+    .metric-title {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .metric-value {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .metric-value.train {
+      color: #059669;
+    }
+    .metric-value.val {
+      color: #2563eb;
+    }
+    .metric-value.gap {
+      color: #d97706;
+    }
+
+    /* 진단 및 해석 문장 배너 */
+    .diagnosis-card {
+      border-radius: 12px;
+      padding: 16px;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .diagnosis-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .diagnosis-desc {
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .state-overfit {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+    }
+
+    .state-underfit {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #92400e;
+    }
+
+    .state-balanced {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+    }
+
+    /* 교육적 안내 박스 */
+    .reason-box {
+      background: #f1f5f9;
+      border-left: 4px solid var(--primary);
+      padding: 12px 14px;
+      border-radius: 0 8px 8px 0;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #334155;
+    }
+
+    /* 우측 캔버스 영역 */
+    .canvas-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .canvas-wrapper {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+      background: #ffffff;
+      width: 580px;
+      height: 520px;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .canvas-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 16px;
+      width: 100%;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-icon-train-a {
+      width: 11px;
+      height: 11px;
+      background-color: var(--class-a);
+      border-radius: 50%;
+      border: 1.5px solid #fff;
+      box-shadow: 0 0 0 1px #991b1b;
+    }
+    .legend-icon-val-a {
+      width: 11px;
+      height: 11px;
+      background-color: transparent;
+      border: 2px solid var(--class-a);
+      border-radius: 50%;
+    }
+    .legend-icon-train-b {
+      width: 11px;
+      height: 11px;
+      background-color: var(--class-b);
+      border-radius: 50%;
+      border: 1.5px solid #fff;
+      box-shadow: 0 0 0 1px #1e40af;
+    }
+    .legend-icon-val-b {
+      width: 11px;
+      height: 11px;
+      background-color: transparent;
+      border: 2px solid var(--class-b);
+      border-radius: 50%;
+    }
+    .legend-icon-tint-a {
+      width: 12px;
+      height: 12px;
+      background: var(--class-a-light);
+      border: 1px solid #f87171;
+      border-radius: 3px;
+    }
+    .legend-icon-tint-b {
+      width: 12px;
+      height: 12px;
+      background: var(--class-b-light);
+      border: 1px solid #60a5fa;
+      border-radius: 3px;
+    }
+
+    /* 모달 (추상화 한계 안내) */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      backdrop-filter: blur(3px);
+      display: none;
+      place-items: center;
+      z-index: 999;
+      padding: 16px;
+    }
+    .modal-overlay.active {
+      display: grid;
+    }
+    .modal-box {
+      background: white;
+      border-radius: 16px;
+      max-width: 540px;
+      width: 100%;
+      padding: 24px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .modal-header h3 {
+      font-size: 17px;
+      font-weight: 700;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+    .modal-content p {
+      font-size: 14px;
+      color: #334155;
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+    .modal-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      font-size: 13px;
+    }
+    .modal-table th, .modal-table td {
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      text-align: left;
+    }
+    .modal-table th {
+      background: #f8fafc;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- 상단 헤더 -->
+  <header>
+    <div class="title-group">
+      <h1><i class="fa-solid fa-chart-pie" style="color: var(--primary);"></i> K-NN 이웃 수(k)와 일반화 성능 시뮬레이터</h1>
+      <p>훈련 정확도의 착시를 꿰뚫어보고, 과대적합과 과소적합의 경계를 직관적으로 탐구합니다.</p>
+    </div>
+    <div class="abstraction-badge" id="openModalBtn">
+      <i class="fa-solid fa-circle-question"></i> 추상화 모델의 한계
+    </div>
+  </header>
+
+  <!-- 메인 작업 영역 -->
+  <div class="workspace">
+    <!-- 좌측 제어 및 분석 패널 -->
+    <div class="left-panel">
+      <!-- 조작부 카드 -->
+      <div class="card">
+        <div class="section-title">
+          <span><i class="fa-solid fa-sliders"></i> 파라미터 조작부</span>
+          <span style="font-size: 11px; color: var(--text-muted); font-weight: normal;">실시간 반영</span>
+        </div>
+
+        <div class="control-group">
+          <!-- k값 슬라이더 (내부 요인) -->
+          <div class="control-item">
+            <div class="control-label-row">
+              <label for="kSlider"><i class="fa-solid fa-user-group"></i> 이웃 수 (k)</label>
+              <span class="control-badge" id="kBadge">k = 1</span>
+            </div>
+            <input type="range" id="kSlider" min="1" max="81" step="2" value="1">
+            <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
+              <span>1 (세밀·민감)</span>
+              <span>41</span>
+              <span>81 (단순·둔감)</span>
+            </div>
+          </div>
+
+          <!-- 데이터 모양 선택 (외부 요인) -->
+          <div class="control-item">
+            <div class="control-label-row">
+              <label for="shapeSelect"><i class="fa-solid fa-shapes"></i> 데이터 분포 모양</label>
+            </div>
+            <select id="shapeSelect">
+              <option value="circles">동심원 (Concentric Circles)</option>
+              <option value="twoBlobs" selected>두 덩어리 (Two Blobs)</option>
+              <option value="fourBlobs">네 덩어리 (Four Blobs)</option>
+            </select>
+          </div>
+
+          <!-- 겹침 정도 슬라이더 (외부 요인) -->
+          <div class="control-item">
+            <div class="control-label-row">
+              <label for="overlapSlider"><i class="fa-solid fa-shuffle"></i> 겹침 정도 (노이즈)</label>
+              <span class="control-badge" id="overlapBadge">15</span>
+            </div>
+            <input type="range" id="overlapSlider" min="0" max="40" step="2" value="15">
+          </div>
+
+          <!-- 훈련 데이터 수 슬라이더 (외부 요인) -->
+          <div class="control-item">
+            <div class="control-label-row">
+              <label for="nTrainSlider"><i class="fa-solid fa-database"></i> 훈련 데이터 수 (N)</label>
+              <span class="control-badge" id="nTrainBadge">120개</span>
+            </div>
+            <input type="range" id="nTrainSlider" min="30" max="300" step="10" value="120">
+          </div>
+
+          <div class="btn-row">
+            <button class="btn-primary" id="regenerateBtn">
+              <i class="fa-solid fa-arrows-rotate"></i> 데이터 새로 생성하기
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 결과 지표 카드 -->
+      <div class="card">
+        <div class="section-title">
+          <span><i class="fa-solid fa-square-poll-vertical"></i> 결과 지표</span>
+          <span style="font-size: 11px; color: var(--text-muted); font-weight: normal;">검증 데이터 80개 고정</span>
+        </div>
+
+        <div class="metrics-container">
+          <div class="metric-box">
+            <div class="metric-title">훈련 정확도</div>
+            <div class="metric-value train" id="trainAccText">100%</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-title">검증 정확도</div>
+            <div class="metric-value val" id="valAccText">82.5%</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-title">둘의 격차 (차이)</div>
+            <div class="metric-value gap" id="gapText">+17.5%p</div>
+          </div>
+        </div>
+
+        <!-- 실시간 진단 문장 -->
+        <div style="margin-top: 14px;">
+          <div class="diagnosis-card state-overfit" id="diagnosisBox">
+            <div class="diagnosis-header" id="diagnosisTitle">
+              <i class="fa-solid fa-triangle-exclamation"></i> 상태: 과대적합 (Overfitting)
+            </div>
+            <div class="diagnosis-desc" id="diagnosisDesc">
+              훈련 데이터의 사소한 잡음까지 맹목적으로 외워 결정 경계가 울퉁불퉁 쪼개져 있습니다. 훈련 점수는 만점이지만 새로운 검증 데이터는 제대로 맞히지 못합니다.
+            </div>
+          </div>
+        </div>
+
+        <!-- 지표 선정 배경 해설 -->
+        <div style="margin-top: 14px;">
+          <div class="reason-box">
+            <strong>💡 왜 세 지표를 나란히 비교할까요?</strong><br>
+            훈련 정확도 하나만 보면 <em>k=1</em>일 때 언제나 100%가 나와 최고로 보입니다. 하지만 새로운 검증 데이터의 정확도를 함께 놓아야 그것이 '노이즈 암기'로 인한 착시임이 드러납니다.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 우측 시각화 캔버스 패널 -->
+    <div class="card canvas-panel">
+      <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 15px; font-weight: 700;">
+          <i class="fa-solid fa-map"></i> 2차원 결정 경계 & 데이터 공간
+        </span>
+        <span style="font-size: 12px; color: var(--text-muted);">
+          거리 측정: 유클리드 거리 (고정)
+        </span>
+      </div>
+
+      <div class="canvas-wrapper">
+        <canvas id="knnCanvas" width="580" height="520"></canvas>
+      </div>
+
+      <!-- 범례 안내 -->
+      <div class="canvas-legend">
+        <div class="legend-item">
+          <span class="legend-icon-train-a"></span>
+          <span>훈련 A (채운 원)</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-icon-val-a"></span>
+          <span>검증 A (속 빈 원)</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-icon-train-b"></span>
+          <span>훈련 B (채운 원)</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-icon-val-b"></span>
+          <span>검증 B (속 빈 원)</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-icon-tint-a"></span>
+          <span>예측 영역 A</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-icon-tint-b"></span>
+          <span>예측 영역 B</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 추상화 한계 안내 모달 -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-lightbulb" style="color: #f59e0b;"></i> 모델 추상화 설계 및 한계</h3>
+      <button class="modal-close" id="closeModalBtn">&times;</button>
+    </div>
+    <div class="modal-content">
+      <p>본 시뮬레이터는 핵심 원리 학습을 위해 현실의 복잡한 데이터를 단순화(추상화)했습니다.</p>
+      
+      <table class="modal-table">
+        <thead>
+          <tr>
+            <th>남긴 것 (포함)</th>
+            <th>버린 것 (제외)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>2차원 평면 좌표 (x, y)</td>
+            <td>3차원 이상의 고차원 다중 특성</td>
+          </tr>
+          <tr>
+            <td>2개의 대칭 클래스</td>
+            <td>3개 이상의 다중 클래스, 극심한 불균형</td>
+          </tr>
+          <tr>
+            <td>단순 유클리드 거리</td>
+            <td>거리 역수 가중치, 맨해튼/마할라노비스 거리</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; padding: 12px; font-size: 13px; color: #9f1239;">
+        <strong>⚠️ 버린 것 때문에 답할 수 없는 질문:</strong><br>
+        <em>“특성이 100개인 빅데이터에서도 여기서 구한 k가 동일하게 최적일까?”</em><br>
+        → <strong>답할 수 없습니다.</strong> 차원이 극도로 높아지면 모든 데이터 간의 거리가 비슷해지는 <strong>'차원의 저주(Curse of Dimensionality)'</strong>가 발생하므로, 2차원 시뮬레이터와 전혀 다른 양상을 띠게 됩니다.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // --- 1. 상태 변수 정의 ---
+  let trainData = [];
+  let valData = [];
+  const VAL_COUNT = 80; // 검증 데이터는 80개로 고정하여 안정적인 검증 지표 측정
+
+  // DOM 요소
+  const canvas = document.getElementById('knnCanvas');
+  const ctx = canvas.getContext('2d');
+
+  const kSlider = document.getElementById('kSlider');
+  const kBadge = document.getElementById('kBadge');
+  const shapeSelect = document.getElementById('shapeSelect');
+  const overlapSlider = document.getElementById('overlapSlider');
+  const overlapBadge = document.getElementById('overlapBadge');
+  const nTrainSlider = document.getElementById('nTrainSlider');
+  const nTrainBadge = document.getElementById('nTrainBadge');
+  const regenerateBtn = document.getElementById('regenerateBtn');
+
+  const trainAccText = document.getElementById('trainAccText');
+  const valAccText = document.getElementById('valAccText');
+  const gapText = document.getElementById('gapText');
+  const diagnosisBox = document.getElementById('diagnosisBox');
+  const diagnosisTitle = document.getElementById('diagnosisTitle');
+  const diagnosisDesc = document.getElementById('diagnosisDesc');
+
+  // 모달 제어
+  const openModalBtn = document.getElementById('openModalBtn');
+  const closeModalBtn = document.getElementById('closeModalBtn');
+  const modalOverlay = document.getElementById('modalOverlay');
+
+  openModalBtn.onclick = () => modalOverlay.classList.add('active');
+  closeModalBtn.onclick = () => modalOverlay.classList.remove('active');
+  modalOverlay.onclick = (e) => {
+    if (e.target === modalOverlay) modalOverlay.classList.remove('active');
+  };
+
+  // 가우시안 난수 생성기 (Box-Muller 변환)
+  function randomGaussian(mean = 0, stdev = 1) {
+    let u = 1 - Math.random();
+    let v = Math.random();
+    let z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    return z * stdev + mean;
+  }
+
+  // --- 2. 데이터셋 생성 (알고리즘 1단계) ---
+  function generateDataset(shape, overlap, nTrain) {
+    const train = [];
+    const val = [];
+
+    const w = canvas.width;
+    const h = canvas.height;
+    const cx = w / 2;
+    const cy = h / 2;
+
+    // 공통 샘플러 함수
+    function samplePoint(targetClass) {
+      const spread = overlap * 2.2; // 겹침 정도가 표준편차에 비례
+
+      if (shape === 'circles') {
+        // 동심원: 내부 원(A), 외부 링(B)
+        if (targetClass === 'A') {
+          const r = Math.abs(randomGaussian(0, 45 + spread * 0.8));
+          const theta = Math.random() * Math.PI * 2;
+          return { x: cx + r * Math.cos(theta), y: cy + r * Math.sin(theta), label: 'A' };
+        } else {
+          const r = Math.abs(randomGaussian(140, 25 + spread * 0.8));
+          const theta = Math.random() * Math.PI * 2;
+          return { x: cx + r * Math.cos(theta), y: cy + r * Math.sin(theta), label: 'B' };
+        }
+      } 
+      else if (shape === 'twoBlobs') {
+        // 두 덩어리: 좌측상단(A), 우측하단(B)
+        const offset = 100 - overlap * 1.3; // 겹침이 클수록 두 중심이 가까워짐
+        const sd = 45 + overlap * 1.5;
+        if (targetClass === 'A') {
+          return { x: randomGaussian(cx - offset, sd), y: randomGaussian(cy - offset * 0.7, sd), label: 'A' };
+        } else {
+          return { x: randomGaussian(cx + offset, sd), y: randomGaussian(cy + offset * 0.7, sd), label: 'B' };
+        }
+      } 
+      else if (shape === 'fourBlobs') {
+        // 네 덩어리: 체커보드/대각선 교차 구조 (비선형 분리)
+        const offset = 110;
+        const sd = 35 + overlap * 1.4;
+        const subIndex = Math.random() < 0.5 ? 0 : 1;
+
+        if (targetClass === 'A') {
+          const center = subIndex === 0 ? { x: cx - offset, y: cy - offset } : { x: cx + offset, y: cy + offset };
+          return { x: randomGaussian(center.x, sd), y: randomGaussian(center.y, sd), label: 'A' };
+        } else {
+          const center = subIndex === 0 ? { x: cx + offset, y: cy - offset } : { x: cx - offset, y: cy + offset };
+          return { x: randomGaussian(center.x, sd), y: randomGaussian(center.y, sd), label: 'B' };
+        }
+      }
+    }
+
+    // 훈련 데이터 생성 (A, B 균등)
+    const nA = Math.floor(nTrain / 2);
+    const nB = nTrain - nA;
+    for (let i = 0; i < nA; i++) train.push(samplePoint('A'));
+    for (let i = 0; i < nB; i++) train.push(samplePoint('B'));
+
+    // 검증 데이터 생성 (동일 분포에서 별도 추출)
+    for (let i = 0; i < VAL_COUNT / 2; i++) val.push(samplePoint('A'));
+    for (let i = 0; i < VAL_COUNT / 2; i++) val.push(samplePoint('B'));
+
+    // 경계 내부로 클램핑
+    [...train, ...val].forEach(p => {
+      p.x = Math.max(10, Math.min(w - 10, p.x));
+      p.y = Math.max(10, Math.min(h - 10, p.y));
+    });
+
+    return { train, val };
+  }
+
+  // --- 3. 유클리드 거리 및 KNN 다수결 예측 (알고리즘 2~3단계) ---
+  function predictKNN(px, py, k, excludeIndex = -1) {
+    // 유클리드 거리 제곱 (정렬용이므로 sqrt 생략해 고속 계산)
+    const dists = [];
+    for (let i = 0; i < trainData.length; i++) {
+      if (i === excludeIndex) continue; // 자기 자신과의 비교 필요시 제어 (훈련 정확도 측정 시)
+      const p = trainData[i];
+      const dx = px - p.x;
+      const dy = py - p.y;
+      dists.push({ distSq: dx * dx + dy * dy, label: p.label });
+    }
+
+    // 거리순 정렬
+    dists.sort((a, b) => a.distSq - b.distSq);
+
+    const effectiveK = Math.min(k, dists.length);
+    let voteA = 0;
+    let voteB = 0;
+
+    for (let i = 0; i < effectiveK; i++) {
+      if (dists[i].label === 'A') voteA++;
+      else voteB++;
+    }
+
+    // 동수일 경우 첫 번째(가장 가까운) 데이터의 라벨 채택
+    if (voteA === voteB) {
+      return dists[0].label;
+    }
+    return voteA > voteB ? 'A' : 'B';
+  }
+
+  // --- 4. 결정 경계 시각화 및 채점 (알고리즘 3~4단계) ---
+  function render() {
+    const k = parseInt(kSlider.value, 10);
+    const w = canvas.width;
+    const h = canvas.height;
+
+    // 1) 배경 결정 경계 격자 칠하기 (효율적인 성능을 위해 6px 격자 단위)
+    const step = 6;
+    for (let x = 0; x < w; x += step) {
+      for (let y = 0; y < h; y += step) {
+        const pred = predictKNN(x + step / 2, y + step / 2, k);
+        ctx.fillStyle = (pred === 'A') ? 'rgba(239, 68, 68, 0.18)' : 'rgba(59, 130, 246, 0.18)';
+        ctx.fillRect(x, y, step, step);
+      }
+    }
+
+    // 2) 훈련 데이터 그리기 (● 채운 원)
+    trainData.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = (p.label === 'A') ? '#ef4444' : '#3b82f6';
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#ffffff';
+      ctx.stroke();
+    });
+
+    // 3) 검증 데이터 그리기 (○ 속 빈 원)
+    valData.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 5.5, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.fill();
+      ctx.lineWidth = 2.2;
+      ctx.strokeStyle = (p.label === 'A') ? '#ef4444' : '#3b82f6';
+      ctx.stroke();
+    });
+
+    // 4) 정확도 채점
+    // 훈련 정확도: 훈련 데이터셋 자체에 대해 k-NN 수행 (k=1일 때 100%가 나오는 착시를 그대로 검증 가능)
+    let trainCorrect = 0;
+    trainData.forEach((p) => {
+      const pred = predictKNN(p.x, p.y, k);
+      if (pred === p.label) trainCorrect++;
+    });
+    const trainAcc = (trainCorrect / trainData.length) * 100;
+
+    // 검증 정확도: 별도의 검증 데이터셋에 대해 k-NN 수행
+    let valCorrect = 0;
+    valData.forEach(p => {
+      const pred = predictKNN(p.x, p.y, k);
+      if (pred === p.label) valCorrect++;
+    });
+    const valAcc = (valCorrect / valData.length) * 100;
+
+    // 격차 (훈련 - 검증)
+    const gap = trainAcc - valAcc;
+
+    // UI 지표 업데이트
+    trainAccText.innerText = `${trainAcc.toFixed(1)}%`;
+    valAccText.innerText = `${valAcc.toFixed(1)}%`;
+    
+    const sign = gap > 0 ? '+' : '';
+    gapText.innerText = `${sign}${gap.toFixed(1)}%p`;
+
+    // 5) 해석 문장 자동 판별 (과대적합 / 과소적합 / 균형)
+    updateDiagnosis(k, trainAcc, valAcc, gap);
+  }
+
+  function updateDiagnosis(k, trainAcc, valAcc, gap) {
+    diagnosisBox.className = 'diagnosis-card';
+
+    // 판정 로직:
+    // 1) 과대적합: 훈련과 검증 정확도 격차가 12%p 이상 크거나, k가 아주 작고 경계가 지나치게 국소화됨
+    // 2) 과소적합: 훈련 정확도와 검증 정확도가 모두 낮아졌거나 (예: 75% 미만), k가 데이터 수에 비해 너무 커서 둔감해짐
+    // 3) 균형: 그 외의 안정적인 일반화 상태
+    const maxK = Math.min(parseInt(nTrainSlider.value), 81);
+
+    if (gap >= 12.0 || (k <= 3 && gap >= 8.0)) {
+      diagnosisBox.classList.add('state-overfit');
+      diagnosisTitle.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> 상태: 과대적합 (Overfitting)';
+      diagnosisDesc.innerHTML = `현재 <strong>k=${k}</strong>는 너무 작습니다. 훈련 데이터의 사소한 노이즈까지 하나하나 외워 결정 경계가 울퉁불퉁 찢어져 있습니다. <strong>훈련 정확도는 ${trainAcc.toFixed(1)}%로 매우 높지만</strong>, 새로운 <strong>검증 데이터는 ${valAcc.toFixed(1)}%로 격차(${gap.toFixed(1)}%p)</strong>가 큽니다.`;
+    } 
+    else if ((trainAcc < 73 && valAcc < 73) || k >= Math.max(35, maxK * 0.45)) {
+      diagnosisBox.classList.add('state-underfit');
+      diagnosisTitle.innerHTML = '<i class="fa-solid fa-cloud"></i> 상태: 과소적합 (Underfitting)';
+      diagnosisDesc.innerHTML = `현재 <strong>k=${k}</strong>는 너무 큽니다. 너무 많은 이웃의 다수결을 따르다 보니 데이터 고유의 패턴이 뭉개지고 경계선이 둔감해졌습니다. <strong>훈련 정확도와 검증 정확도가 모두 낮아져</strong> 모델이 제 역할을 못하고 있습니다.`;
+    } 
+    else {
+      diagnosisBox.classList.add('state-balanced');
+      diagnosisTitle.innerHTML = '<i class="fa-solid fa-circle-check"></i> 상태: 적정 균형 (Balanced)';
+      diagnosisDesc.innerHTML = `현재 <strong>k=${k}</strong>에서 일반화 성능이 가장 이상적입니다. 결정 경계가 적절히 부드러우면서도 데이터의 패턴을 잘 반영하고 있으며, <strong>검증 정확도(${valAcc.toFixed(1)}%)</strong>가 높고 격차가 적절히 통제되고 있습니다.`;
+    }
+  }
+
+  // --- 5. 이벤트 리스너 연동 ---
+  function resetDataAndRender() {
+    const shape = shapeSelect.value;
+    const overlap = parseInt(overlapSlider.value, 10);
+    const nTrain = parseInt(nTrainSlider.value, 10);
+
+    const ds = generateDataset(shape, overlap, nTrain);
+    trainData = ds.train;
+    valData = ds.val;
+
+    // k의 최대치가 훈련 데이터 수를 넘지 않도록 제한
+    const maxOddK = Math.min(81, (nTrain % 2 === 0 ? nTrain - 1 : nTrain));
+    kSlider.max = maxOddK;
+    if (parseInt(kSlider.value) > maxOddK) {
+      kSlider.value = maxOddK;
+      kBadge.innerText = `k = ${maxOddK}`;
+    }
+
+    render();
+  }
+
+  // k 변경 시 (데이터 재생성 없이 렌더링만 수행)
+  kSlider.oninput = (e) => {
+    kBadge.innerText = `k = ${e.target.value}`;
+    render();
+  };
+
+  // 겹침 정도 변경 시
+  overlapSlider.oninput = (e) => {
+    overlapBadge.innerText = e.target.value;
+    resetDataAndRender();
+  };
+
+  // 훈련 데이터 수 변경 시
+  nTrainSlider.oninput = (e) => {
+    nTrainBadge.innerText = `${e.target.value}개`;
+    resetDataAndRender();
+  };
+
+  // 모양 변경 시
+  shapeSelect.onchange = () => {
+    resetDataAndRender();
+  };
+
+  // 새로 생성 버튼
+  regenerateBtn.onclick = () => {
+    resetDataAndRender();
+  };
+
+  // 초기 실행
+  resetDataAndRender();
+</script>
+
+</body>
+</html>
